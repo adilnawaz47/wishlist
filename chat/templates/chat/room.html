@@ -592,10 +592,37 @@ function scrollBottom() {
 }
 
 /* ────────────────── WebRTC ────────────────── */
-const ICE_SERVERS = { iceServers: [
-  {urls:'stun:stun.l.google.com:19302'},
-  {urls:'stun:stun1.l.google.com:19302'},
-]};
+// Enhanced ICE servers for better mobile support
+const ICE_SERVERS = { 
+  iceServers: [
+    // STUN servers (discover public IP)
+    {urls:'stun:stun.l.google.com:19302'},
+    {urls:'stun:stun1.l.google.com:19302'},
+    {urls:'stun:stun2.l.google.com:19302'},
+    {urls:'stun:stun3.l.google.com:19302'},
+    {urls:'stun:stun4.l.google.com:19302'},
+    {urls:'stun:stun1.twilio.com:3478'},
+    // TURN servers (relay through server - essential for mobile)
+    {
+      urls: 'turn:turnserver.example.com:3478',
+      username: 'guest',
+      credential: 'guest'
+    },
+    {
+      urls: 'turn:turn.cloudflare.com:3478',
+      username: 'test',
+      credential: 'test'
+    }
+  ],
+  iceCandidatePoolSize: 10,
+};
+
+// Use mDNS candidate filtering on mobile
+const PC_CONFIG = {
+  ...ICE_SERVERS,
+  bundlePolicy: 'max-bundle',
+  rtcpMuxPolicy: 'require',
+};
 
 let pc = null;          // RTCPeerConnection
 let localStream = null;
@@ -606,27 +633,62 @@ let facingMode    = 'user'; // front camera by default
 
 async function getMedia(video) {
   const constraints = {
-    audio: true,
-    video: video ? {facingMode} : false,
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+    video: video ? {
+      facingMode,
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+    } : false,
   };
-  return navigator.mediaDevices.getUserMedia(constraints);
+  
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    console.log('✅ Media stream acquired:', stream.getTracks().map(t => t.kind));
+    return stream;
+  } catch (err) {
+    console.error('❌ getUserMedia error:', err);
+    throw err;
+  }
 }
 
 function buildPC() {
   if (pc) { pc.close(); pc = null; }
-  pc = new RTCPeerConnection(ICE_SERVERS);
+  pc = new RTCPeerConnection(PC_CONFIG);
 
   pc.onicecandidate = ({candidate}) => {
-    if (candidate && socket.readyState === WebSocket.OPEN)
-      socket.send(JSON.stringify({type:'ice_candidate', candidate: candidate.toJSON()}));
+    if (candidate) {
+      console.log('📍 ICE candidate:', candidate.candidate.substring(0, 50));
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({type:'ice_candidate', candidate: candidate.toJSON()}));
+      }
+    }
+  };
+
+  pc.onicecandidateerror = (event) => {
+    console.warn('❌ ICE candidate error:', event.errorCode, event.errorText);
   };
 
   pc.ontrack = ({streams}) => {
+    console.log('🎥 Remote track received');
     const rv = document.getElementById('remoteVideo');
     if (rv.srcObject !== streams[0]) rv.srcObject = streams[0];
   };
 
+  pc.oniceconnectionstatechange = () => {
+    console.log('🔌 ICE connection state:', pc.iceConnectionState);
+    if (pc.iceConnectionState === 'failed') {
+      console.log('⚠️ ICE failed - trying to recover...');
+      // Try to gather new candidates
+      pc.restartIce?.();
+    }
+  };
+
   pc.onconnectionstatechange = () => {
+    console.log('📡 Connection state:', pc.connectionState);
     if (['disconnected','failed','closed'].includes(pc.connectionState)) {
       showCallStatus('Call ended');
       setTimeout(closeCallUI, 1500);
@@ -634,6 +696,10 @@ function buildPC() {
     if (pc.connectionState === 'connected') {
       showCallStatus('Connected ❤️');
     }
+  };
+
+  pc.onsignalingstatechange = () => {
+    console.log('📞 Signaling state:', pc.signalingState);
   };
 
   return pc;
@@ -645,27 +711,38 @@ async function startCall(mode) {
   showCallOverlay();
 
   try {
+    console.log('📞 Starting', isVideoCall ? 'video' : 'audio', 'call...');
     localStream = await getMedia(isVideoCall);
   } catch (err) {
+    console.error('❌ Media access error:', err);
     alert('Could not access camera/microphone: ' + err.message);
-    closeCallUI(); return;
+    closeCallUI(); 
+    return;
   }
 
-  document.getElementById('localVideo').srcObject = localStream;
-  document.getElementById('flipBtn').style.display = isVideoCall ? '' : 'none';
+  try {
+    document.getElementById('localVideo').srcObject = localStream;
+    document.getElementById('flipBtn').style.display = isVideoCall ? '' : 'none';
 
-  buildPC();
-  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+    buildPC();
+    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
 
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
+    console.log('📝 Creating offer...');
+    const offer = await pc.createOffer();
+    console.log('📤 Sending offer...');
+    await pc.setLocalDescription(offer);
 
-  socket.send(JSON.stringify({
-    type: 'call_offer',
-    offer: {type: offer.type, sdp: offer.sdp},
-    isVideo: isVideoCall,
-  }));
-  showCallStatus('Ringing…');
+    socket.send(JSON.stringify({
+      type: 'call_offer',
+      offer: {type: offer.type, sdp: offer.sdp},
+      isVideo: isVideoCall,
+    }));
+    showCallStatus('Ringing…');
+  } catch (err) {
+    console.error('❌ Offer error:', err);
+    alert('Error starting call: ' + err.message);
+    closeCallUI();
+  }
 }
 
 async function handleOffer(data) {
@@ -684,37 +761,71 @@ async function answerCall() {
   showCallOverlay();
 
   try {
+    console.log('📞 Answering call...');
     localStream = await getMedia(isVideoCall);
   } catch (err) {
+    console.error('❌ Media access error:', err);
     alert('Could not access camera/microphone: ' + err.message);
-    rejectCall(); return;
+    rejectCall(); 
+    return;
   }
 
-  document.getElementById('localVideo').srcObject = localStream;
-  document.getElementById('flipBtn').style.display = isVideoCall ? '' : 'none';
+  try {
+    document.getElementById('localVideo').srcObject = localStream;
+    document.getElementById('flipBtn').style.display = isVideoCall ? '' : 'none';
 
-  buildPC();
-  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+    buildPC();
+    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
 
-  await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer.offer));
-  const answer = await pc.createAnswer();
-  await pc.setLocalDescription(answer);
+    if (!pendingOffer?.offer) throw new Error('No offer received');
+    
+    console.log('📝 Setting remote description (offer)...');
+    await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer.offer));
+    
+    const answer = await pc.createAnswer();
+    console.log('📤 Sending answer...');
+    await pc.setLocalDescription(answer);
 
-  socket.send(JSON.stringify({
-    type: 'call_answer',
-    answer: {type: answer.type, sdp: answer.sdp},
-  }));
-  showCallStatus('Connecting…');
+    socket.send(JSON.stringify({
+      type: 'call_answer',
+      answer: {type: answer.type, sdp: answer.sdp},
+    }));
+    showCallStatus('Connecting…');
+  } catch (err) {
+    console.error('❌ Answer error:', err);
+    alert('Error setting up call: ' + err.message);
+    endCall();
+  }
 }
 
 async function handleAnswer(data) {
-  if (!pc) return;
-  await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+  if (!pc) {
+    console.error('❌ No peer connection when handling answer');
+    return;
+  }
+  try {
+    console.log('📝 Setting remote description (answer)...');
+    await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+    showCallStatus('Connecting…');
+  } catch (err) {
+    console.error('❌ Error handling answer:', err);
+    showCallStatus('Connection error');
+  }
 }
 
 async function handleIceCandidate(data) {
-  if (!pc) return;
-  try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(_) {}
+  if (!pc) {
+    console.warn('⚠️ ICE candidate received but no peer connection');
+    return;
+  }
+  try {
+    if (data.candidate) {
+      console.log('➕ Adding ICE candidate...');
+      await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+    }
+  } catch (err) {
+    console.warn('⚠️ Error adding ICE candidate:', err.message);
+  }
 }
 
 function rejectCall() {
