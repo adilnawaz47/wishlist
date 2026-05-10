@@ -1,0 +1,62 @@
+{% extends 'wishlistapp/base.html' %}
+
+{% block title %}Wishlists{% endblock %}
+
+{% block content %}
+<div class="row">
+    {% for wishlist in wishlists %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-gift"></i> {{ wishlist.title }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">{{ wishlist.description|truncatechars:100 }}</p>
+                {% if wishlist.updated_at > wishlist.created_at %}
+                <span class="badge bg-danger mb-2">Updated</span>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent">
+                <div class="mb-2 text-muted small">
+                    Created: {{ wishlist.created_at|date:"M d, Y" }}
+                    {% if wishlist.updated_at > wishlist.created_at %}
+                        <br>Updated: {{ wishlist.updated_at|date:"M d, Y" }}
+                    {% endif %}
+                    {% if user.is_superuser %}
+                        <br>By: {{ wishlist.user.username }}
+                    {% endif %}
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'wishlist_detail' wishlist.pk %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-eye"></i> View
+                    </a>
+                    <a href="{% url 'wishlist_update' wishlist.pk %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <a href="{% url 'wishlist_delete' wishlist.pk %}" class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-trash"></i> Delete
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="fas fa-gift fa-4x text-muted mb-3"></i>
+            <h3 class="text-muted">No wishlists yet</h3>
+            <p class="text-muted">Create your first wishlist to get started!</p>
+            <a href="{% url 'wishlist_create' %}" class="btn btn-primary mt-3"><i class="fas fa-plus-circle"></i> Create Wishlist</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="text-center mt-4">
+    <a href="{% url 'wishlist_create' %}" class="btn btn-primary btn-lg">
+        <i class="fas fa-plus-circle"></i> Add New Wishlist
+    </a>
+</div>
+{% endblock %}

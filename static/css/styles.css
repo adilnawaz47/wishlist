@@ -1,0 +1,189 @@
+body {
+    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    position: relative;
+    overflow-x: hidden;
+}
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 20% 80%, rgba(255, 107, 157, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 71, 87, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(255, 107, 157, 0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: -1;
+}
+.heart-bg {
+    position: fixed;
+    font-size: 2rem;
+    color: rgba(255, 107, 157, 0.1);
+    pointer-events: none;
+    z-index: -1;
+    animation: float 6s ease-in-out infinite;
+}
+.heart-bg:nth-child(1) { top: 10%; left: 10%; animation-delay: 0s; }
+.heart-bg:nth-child(2) { top: 20%; right: 15%; animation-delay: 1s; }
+.heart-bg:nth-child(3) { top: 60%; left: 20%; animation-delay: 2s; }
+.heart-bg:nth-child(4) { top: 70%; right: 10%; animation-delay: 3s; }
+.heart-bg:nth-child(5) { top: 40%; left: 70%; animation-delay: 4s; }
+.heart-bg:nth-child(6) { top: 80%; right: 70%; animation-delay: 5s; }
+.heart-bg:nth-child(7) { top: 15%; left: 50%; font-size: 6rem; animation-delay: 1.5s; }
+.heart-bg:nth-child(8) { top: 35%; right: 30%; font-size: 4.5rem; animation-delay: 2.5s; }
+.heart-bg:nth-child(9) { top: 55%; left: 80%; font-size: 5rem; animation-delay: 3.5s; }
+.heart-bg:nth-child(10) { top: 85%; right: 40%; font-size: 3.5rem; animation-delay: 4.5s; }
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(5deg); }
+}
+.falling-heart {
+    position: fixed;
+    font-size: 2rem;
+    color: #ff4757;
+    pointer-events: none;
+    z-index: -2;
+    animation: fall 10s linear infinite;
+    opacity: 0.7;
+}
+.falling-heart:nth-child(5) { font-size: 2rem; animation: fall 10s linear infinite, pulse 2s ease-in-out infinite; }
+.falling-heart:nth-child(10) { font-size: 1.7rem; animation: fall 10s linear infinite, pulse 2s ease-in-out infinite; }
+.falling-heart:nth-child(15) { font-size: 2.5rem; animation: fall 10s linear infinite, pulse 2s ease-in-out infinite; }
+.falling-heart:nth-child(20) { font-size: 2.4rem; animation: fall 10s linear infinite, pulse 2s ease-in-out infinite; }
+.falling-heart:nth-child(25) { font-size: 2.1rem; animation: fall 10s linear infinite, pulse 2s ease-in-out infinite; }
+.falling-heart:nth-child(30) { font-size: 1.8rem; animation: fall 10s linear infinite, pulse 2s ease-in-out infinite; }
+@keyframes fall {
+    0% { top: -10%; transform: translateY(0px) rotate(0deg); }
+    100% { top: 110%; transform: translateY(0px) rotate(360deg); }
+}
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+.navbar {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 235, 239, 0.95) 50%, rgba(255, 255, 255, 0.95) 100%);
+    backdrop-filter: blur(15px);
+    border-bottom: 3px solid transparent;
+    border-image: linear-gradient(90deg, #ff6b9d, #ff4757, #ff6b9d) 1;
+    box-shadow: 0 4px 20px rgba(255, 107, 157, 0.2);
+    animation: navbarGlow 3s ease-in-out infinite alternate;
+}
+@keyframes navbarGlow {
+    0% { box-shadow: 0 4px 20px rgba(255, 107, 157, 0.2); }
+    100% { box-shadow: 0 4px 25px rgba(255, 107, 157, 0.4); }
+}
+.navbar-brand {
+    color: #ff6b9d !important;
+    font-weight: bold;
+    font-size: 1.5rem;
+    text-shadow: 0 0 10px rgba(255, 107, 157, 0.5);
+    animation: brandPulse 2s ease-in-out infinite;
+    background: linear-gradient(45deg, #ff6b9d, #ff4757, #ff6b9d);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+@keyframes brandPulse {
+    0%, 100% { transform: scale(1); text-shadow: 0 0 10px rgba(255, 107, 157, 0.5); }
+    50% { transform: scale(1.05); text-shadow: 0 0 15px rgba(255, 107, 157, 0.8); }
+}
+.navbar-nav .nav-link {
+    color: #ff6b9d !important;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    position: relative;
+    border-radius: 20px; /* Slightly rounded corners for nav links */
+    padding: 8px 15px; /* Add padding to make them more button-like */
+    margin: 0 5px; /* Space between nav links */
+}
+.navbar-nav .nav-link:hover {
+    color: #ff4757 !important;
+    transform: translateY(-2px);
+    text-shadow: 0 2px 4px rgba(255, 107, 157, 0.3);
+    background-color: rgba(255, 107, 157, 0.1); /* Subtle background on hover */
+}
+.navbar-nav .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #ff6b9d, #ff4757);
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+.navbar-nav .nav-link:hover::after {
+    width: 100%;
+}
+.btn {
+    border-radius: 25px; /* Rounded corners for all buttons */
+    padding: 10px 20px;
+    font-weight: bold;
+    transition: all 0.3s ease; /* Smooth transition for hover effects */
+}
+.btn-primary {
+    background-color: #ff6b81; /* Primary button color */
+    border-color: #ff6b81;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.btn-primary:hover {
+    background-color: #ff4757; /* Darker on hover */
+    border-color: #ff4757;
+    transform: translateY(-2px); /* Slight lift on hover */
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+.btn-outline-secondary {
+    color: #ff6b81;
+    border-color: #ff6b81;
+    background-color: transparent;
+}
+.btn-outline-secondary:hover {
+    background-color: #ffedef; /* Light background on hover */
+    color: #ff4757;
+    border-color: #ff4757;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+.card:hover {
+    transform: translateY(-5px);
+}
+.card-header {
+    background: linear-gradient(45deg, #ff6b9d, #ff4757);
+    color: white;
+    border-radius: 15px 15px 0 0 !important;
+}
+.btn-outline-danger {
+    color: #ff6b9d;
+    border-color: #ff6b9d;
+}
+.btn-outline-danger:hover {
+    background-color: #ff6b9d;
+    border-color: #ff6b9d;
+}
+.heart {
+    color: #ff4757;
+}
+.footer {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+}
+.navbar-toggler {
+    border-radius: 10px; /* Rounded corners for the toggler button */
+    border-color: #ff6b9d; /* Match brand color */
+    transition: all 0.3s ease;
+}
+.navbar-toggler:hover {
+    background-color: rgba(255, 107, 157, 0.1); /* Subtle background on hover */
+    border-color: #ff4757; /* Darker border on hover */
+}

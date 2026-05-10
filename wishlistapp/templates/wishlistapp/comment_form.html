@@ -1,0 +1,31 @@
+{% extends 'wishlistapp/base.html' %}
+
+{% block title %}Edit Comment{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header bg-gradient p-4 text-white" style="background: linear-gradient(45deg, #ff6b9d, #ff4757);">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-edit"></i> Edit Comment
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {{ form.text }}
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Comment
+                    </button>
+                    <a href="{% url 'wishlist_detail' object.wishlist.pk %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

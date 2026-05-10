@@ -1,0 +1,119 @@
+{% extends 'wishlistapp/base.html' %}
+
+{% block title %}{% if object %}Edit{% else %}Create{% endif %} Memory{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-6 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-{% if object %}edit{% else %}plus-circle{% endif %}"></i>
+                    {% if object %}Edit{% else %}Create New{% endif %} Memory
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ form.title.id_for_label }}" class="form-label">Memory Title</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                            <div class="text-danger">{{ form.title.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.memory_date.id_for_label }}" class="form-label">When did this memory happen?</label>
+                        {{ form.memory_date }}
+                        {% if form.memory_date.errors %}
+                            <div class="text-danger">{{ form.memory_date.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Memory Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="text-danger">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if object and object.photos.all %}
+                    <div class="mb-4">
+                        <h5 class="mb-3"><i class="fas fa-images"></i> Current Photos</h5>
+                        <div class="row">
+                            {% for photo in object.photos.all %}
+                            <div class="col-md-4 col-sm-6 mb-3">
+                                <div class="card">
+                                    <img src="{{ photo.image.url }}" class="card-img-top" alt="Memory photo" style="height: 150px; object-fit: cover;">
+                                    {% if photo.caption %}
+                                    <div class="card-body p-2">
+                                        <p class="card-text small mb-0">{{ photo.caption }}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <p class="text-muted small">These photos are already saved with this memory.</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if not object %}
+                    <div class="mb-3">
+                        <label for="{{ photo_form.images.id_for_label }}" class="form-label">Add Photos (Optional - Select multiple)</label>
+                        {{ photo_form.images }}
+                        <script>
+                            document.getElementById('{{ photo_form.images.id_for_label }}').setAttribute('multiple', 'true');
+                            document.getElementById('{{ photo_form.images.id_for_label }}').setAttribute('accept', 'image/*');
+                            document.getElementById('{{ photo_form.images.id_for_label }}').classList.add('form-control');
+                        </script>
+                        {% if photo_form.images.errors %}
+                            <div class="text-danger">{{ photo_form.images.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">You can select multiple photos at once</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ photo_form.caption.id_for_label }}" class="form-label">Photo Caption (Optional)</label>
+                        {{ photo_form.caption }}
+                        {% if photo_form.caption.errors %}
+                            <div class="text-danger">{{ photo_form.caption.errors }}</div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="mb-3">
+                        <label for="{{ photo_form.images.id_for_label }}" class="form-label">Add More Photos (Optional - Select multiple)</label>
+                        {{ photo_form.images }}
+                        <script>
+                            document.getElementById('{{ photo_form.images.id_for_label }}').setAttribute('multiple', 'true');
+                            document.getElementById('{{ photo_form.images.id_for_label }}').setAttribute('accept', 'image/*');
+                            document.getElementById('{{ photo_form.images.id_for_label }}').classList.add('form-control');
+                        </script>
+                        {% if photo_form.images.errors %}
+                            <div class="text-danger">{{ photo_form.images.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">Add additional photos to this memory</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ photo_form.caption.id_for_label }}" class="form-label">New Photos Caption (Optional)</label>
+                        {{ photo_form.caption }}
+                        {% if photo_form.caption.errors %}
+                            <div class="text-danger">{{ photo_form.caption.errors }}</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> {% if object %}Update{% else %}Create{% endif %} Memory
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'memory_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Memories
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'wishlistapp/base.html' %}
+
+{% block title %}Delete Wishlist{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-6 mx-auto">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Delete Wishlist
+                </h3>
+            </div>
+            <div class="card-body">
+                <p>Are you sure you want to delete the wishlist "<strong>{{ object.title }}</strong>"?</p>
+                <p class="text-muted">This action cannot be undone. All comments associated with this wishlist will also be deleted.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Yes, Delete
+                    </button>
+                    <a href="{% url 'wishlist_detail' object.pk %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

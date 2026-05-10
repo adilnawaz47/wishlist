@@ -1,0 +1,129 @@
+{% extends 'wishlistapp/base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6 col-xl-4">
+        <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden;">
+            <div class="card-header text-center py-4" style="background: linear-gradient(45deg, #ff6b9d, #ff4757); color: white; border: none;">
+                <h2 class="card-title mb-2">
+                    <i class="fas fa-heart heart fa-2x mb-2"></i><br>
+                    Join Our Love Story
+                </h2>
+                <p class="mb-0">Create your account to start sharing wishes with My Love Wishlist</p>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label for="{{ form.username.id_for_label }}" class="form-label fw-bold">
+                            <i class="fas fa-user"></i> Username
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background: #f8f9fa; border-color: #ff6b9d;">
+                                <i class="fas fa-at" style="color: #ff6b9d;"></i>
+                            </span>
+                            {{ form.username }}
+                        </div>
+                        {% if form.username.errors %}
+                            <div class="text-danger mt-1 small">
+                                {% for error in form.username.errors %}
+                                    <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.password1.id_for_label }}" class="form-label fw-bold">
+                            <i class="fas fa-lock"></i> Password
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background: #f8f9fa; border-color: #ff6b9d;">
+                                <i class="fas fa-key" style="color: #ff6b9d;"></i>
+                            </span>
+                            {{ form.password1 }}
+                        </div>
+                        {% if form.password1.errors %}
+                            <div class="text-danger mt-1 small">
+                                {% for error in form.password1.errors %}
+                                    <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.password2.id_for_label }}" class="form-label fw-bold">
+                            <i class="fas fa-lock"></i> Confirm Password
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background: #f8f9fa; border-color: #ff6b9d;">
+                                <i class="fas fa-check-circle" style="color: #ff6b9d;"></i>
+                            </span>
+                            {{ form.password2 }}
+                        </div>
+                        {% if form.password2.errors %}
+                            <div class="text-danger mt-1 small">
+                                {% for error in form.password2.errors %}
+                                    <i class="fas fa-exclamation-circle"></i> {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger" role="alert">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg py-3" style="border-radius: 10px; font-weight: bold; font-size: 1.1rem;">
+                            <i class="fas fa-user-plus fa-lg me-2"></i> Create My Account
+                        </button>
+                        <a href="{% url 'wishlist_list' %}" class="btn btn-outline-secondary btn-lg py-2" style="border-radius: 10px;">
+                            <i class="fas fa-arrow-left me-2"></i> Back to Home
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <p class="text-muted mb-2">Already have an account?</p>
+            <a href="{% url 'login' %}" class="btn btn-outline-primary" style="border-radius: 25px;">
+                <i class="fas fa-sign-in-alt me-2"></i> Login Instead
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.input-group .form-control {
+    border-left: none;
+    border-color: #ff6b9d;
+}
+.input-group .form-control:focus {
+    border-color: #ff4757;
+    box-shadow: 0 0 0 0.2rem rgba(255, 107, 157, 0.25);
+}
+.btn-primary:hover {
+    background-color: #ff4757;
+    border-color: #ff4757;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+.card {
+    transition: transform 0.3s ease;
+}
+.card:hover {
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %}

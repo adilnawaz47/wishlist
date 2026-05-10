@@ -1,0 +1,93 @@
+{% extends 'wishlistapp/base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6 col-xl-4">
+        <div class="card shadow-lg border-0" style="border-radius: 20px; overflow: hidden;">
+            <div class="card-header text-center py-4" style="background: linear-gradient(45deg, #ff6b9d, #ff4757); color: white; border: none;">
+                <h2 class="card-title mb-2">
+                    <i class="fas fa-heart heart fa-2x mb-2"></i><br>
+                    Welcome Back
+                </h2>
+                <p class="mb-0">Login to My Love Wishlist</p>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label for="id_username" class="form-label fw-bold">
+                            <i class="fas fa-user"></i> Username
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background: #f8f9fa; border-color: #ff6b9d;">
+                                <i class="fas fa-at" style="color: #ff6b9d;"></i>
+                            </span>
+                            <input type="text" name="username" id="id_username" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="id_password" class="form-label fw-bold">
+                            <i class="fas fa-lock"></i> Password
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background: #f8f9fa; border-color: #ff6b9d;">
+                                <i class="fas fa-key" style="color: #ff6b9d;"></i>
+                            </span>
+                            <input type="password" name="password" id="id_password" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg py-3" style="border-radius: 10px; font-weight: bold; font-size: 1.1rem;">
+                            <i class="fas fa-sign-in-alt fa-lg me-2"></i> Login to My Account
+                        </button>
+                        <a href="{% url 'wishlist_list' %}" class="btn btn-outline-secondary btn-lg py-2" style="border-radius: 10px;">
+                            <i class="fas fa-times me-2"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+
+                {% if form.errors %}
+                    <div class="alert alert-danger mt-3" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i> <strong>Error:</strong> Invalid username or password.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <p class="text-muted mb-2">Don't have an account yet?</p>
+            <a href="{% url 'register' %}" class="btn btn-outline-primary" style="border-radius: 25px;">
+                <i class="fas fa-user-plus me-2"></i> Create New Account
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.input-group .form-control {
+    border-left: none;
+    border-color: #ff6b9d;
+}
+.input-group .form-control:focus {
+    border-color: #ff4757;
+    box-shadow: 0 0 0 0.2rem rgba(255, 107, 157, 0.25);
+}
+.btn-primary:hover {
+    background-color: #ff4757;
+    border-color: #ff4757;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+.card {
+    transition: transform 0.3s ease;
+}
+.card:hover {
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %}
