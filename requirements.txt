@@ -28,3 +28,4 @@ tzdata==2026.2
 whitenoise==6.11.0
 zope.interface==8.0.1
 psycopg2-binary==2.9.9
+django-cors-headers==4.7.0
