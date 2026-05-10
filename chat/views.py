@@ -49,7 +49,7 @@ def room(request, room_id):
         return redirect('chat_inbox')
 
     other_user = chat_room.get_other_user(request.user)
-    messages_qs = chat_room.messages.select_related('sender').all()
+    chat_messages_qs = chat_room.messages.select_related('sender').all()
 
     # Mark messages from other as read (HTTP-side; WS consumer also handles it)
     chat_room.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
@@ -57,7 +57,7 @@ def room(request, room_id):
     return render(request, 'chat/room.html', {
         'room': chat_room,
         'other_user': other_user,
-        'messages': messages_qs,
+        'chat_messages': chat_messages_qs,   # renamed: was 'messages' — clashed with Django messages framework
         'current_user': request.user,
     })
 

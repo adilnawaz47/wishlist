@@ -381,13 +381,16 @@
       <button class="header-icon-btn" onclick="startCall('video')" title="Video call">
         <i class="fas fa-video"></i>
       </button>
+      <button class="header-icon-btn" id="pwaInstallBtn" onclick="installPWA()" title="Install App" style="display:none">
+        <i class="fas fa-download"></i>
+      </button>
     </div>
   </div>
 
   <!-- Messages -->
   <div class="messages-area" id="messagesArea">
     {% with prev_date="" %}
-    {% for msg in messages %}
+    {% for msg in chat_messages %}
       {% if msg.timestamp|date:"Y-m-d" != prev_date %}
         <div class="date-sep">{{ msg.timestamp|date:"N j, Y" }}</div>
       {% endif %}
@@ -661,6 +664,7 @@ let isVideoCall  = false;
 let isCaller     = false;
 let pendingOffer  = null;   // stored for answer
 let facingMode    = 'user'; // front camera by default
+let pendingIceCandidates = [];  // queue ICE candidates that arrive before pc is ready
 
 async function getMedia(video) {
   const constraints = {
@@ -813,6 +817,13 @@ async function answerCall() {
     console.log('📝 Setting remote description (offer)...');
     await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer.offer));
     
+    // Drain any ICE candidates that arrived before the peer connection was ready
+    console.log(`➕ Draining ${pendingIceCandidates.length} queued ICE candidates...`);
+    for (const candidate of pendingIceCandidates) {
+      try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {}
+    }
+    pendingIceCandidates = [];
+    
     const answer = await pc.createAnswer();
     console.log('📤 Sending answer...');
     await pc.setLocalDescription(answer);
@@ -845,15 +856,18 @@ async function handleAnswer(data) {
 }
 
 async function handleIceCandidate(data) {
-  if (!pc) {
-    console.warn('⚠️ ICE candidate received but no peer connection');
+  if (!data.candidate) return;
+  // If pc doesn't exist yet or remote description isn't set, queue the candidate.
+  // This happens when the phone calls the laptop: ICE candidates arrive while the
+  // incoming call banner is still showing (before answerCall() builds the pc).
+  if (!pc || !pc.remoteDescription) {
+    console.log('⏳ Queuing ICE candidate (pc not ready yet)');
+    pendingIceCandidates.push(data.candidate);
     return;
   }
   try {
-    if (data.candidate) {
-      console.log('➕ Adding ICE candidate...');
-      await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-    }
+    console.log('➕ Adding ICE candidate...');
+    await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
   } catch (err) {
     console.warn('⚠️ Error adding ICE candidate:', err.message);
   }
@@ -877,6 +891,7 @@ function closeCallUI() {
   const lv = document.getElementById('localVideo');
   rv.srcObject = null; lv.srcObject = null;
   if (pc) { pc.close(); pc = null; }
+  pendingIceCandidates = [];
   showCallStatus('Calling…');
   isMuted = false; isCamOff = false;
   document.getElementById('muteBtn').classList.remove('off');
@@ -948,6 +963,25 @@ function openImgModal(src) {
 function getCookie(n) {
   const v = document.cookie.match(`(^|;)\\s*${n}=([^;]+)`);
   return v ? v.pop() : '';
+}
+
+/* ────────────────── PWA Install ────────────────── */
+let deferredPwaPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPwaPrompt = e;
+  document.getElementById('pwaInstallBtn').style.display = '';
+});
+function installPWA() {
+  if (!deferredPwaPrompt) return;
+  deferredPwaPrompt.prompt();
+  deferredPwaPrompt.userChoice.then(() => {
+    deferredPwaPrompt = null;
+    document.getElementById('pwaInstallBtn').style.display = 'none';
+  });
+}
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/sw.js').catch(() => {});
 }
 
 scrollBottom();
