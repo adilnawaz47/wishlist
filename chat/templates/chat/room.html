@@ -63,6 +63,8 @@
   padding: 16px 20px;
   background: #fff9fb;
   scroll-behavior: smooth;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .messages-area::-webkit-scrollbar { width: 4px; }
 .messages-area::-webkit-scrollbar-thumb { background: #ffb3c6; border-radius: 4px; }
@@ -74,6 +76,8 @@
   display: flex;
   margin-bottom: 4px;
   animation: popIn .18s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 @keyframes popIn {
   from { opacity:0; transform:scale(0.92) translateY(6px); }
@@ -81,6 +85,16 @@
 }
 .msg-row.sent     { justify-content: flex-end; }
 .msg-row.received { justify-content: flex-start; }
+
+.msg-row > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 85%;
+}
+.msg-row.sent > div {
+  align-items: flex-end;
+}
 
 .bubble {
   /* KEY FIXES: natural width, proper text wrapping */
@@ -92,9 +106,10 @@
   font-size: 0.95rem;
   line-height: 1.5;
   /* Proper word-wrapping — words break at spaces, not inside words */
-  white-space: pre-wrap;
+  white-space: normal;
+  word-break: break-word;
   overflow-wrap: break-word;
-  word-break: normal;           /* ← was break-word which snapped inside words */
+  word-wrap: break-word;
   hyphens: auto;
 }
 .bubble.sent {
