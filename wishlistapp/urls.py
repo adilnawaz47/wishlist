@@ -15,5 +15,5 @@ urlpatterns = [
     path('memory/create/', views.MemoryCreateView.as_view(), name='memory_create'),
     path('memory/<int:pk>/update/', views.MemoryUpdateView.as_view(), name='memory_update'),
     path('memory/<int:pk>/delete/', views.MemoryDeleteView.as_view(), name='memory_delete'),
-    path('create-admin/', views.create_admin),
+    path('create-admin/', views.create_admin, name='user_create_admin'),
 ]

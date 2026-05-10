@@ -8,6 +8,9 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from .models import Wishlist, Comment, Memory, MemoryPhoto
 from .forms import WishlistForm, CommentForm, MemoryForm, MemoryPhotoForm
+from django.http import HttpResponse
+from django.contrib.auth.models import User
+
 
 # Registration View
 def register(request):
@@ -251,14 +254,17 @@ class MemoryDeleteView(LoginRequiredMixin, DeleteView):
         messages.success(self.request, 'Memory deleted successfully!')
         return super().delete(request, *args, **kwargs)
 
-from django.http import HttpResponse
-from django.contrib.auth.models import User
-
 def create_admin(request):
-    if not User.objects.filter(username='admin').exists():
-        User.objects.create_superuser(
-            'admin',
-            'admin@example.com',
-            'admin123'
-        )
-    return HttpResponse("Superuser created")
+    User.objects.filter(username='admin').delete()
+
+    user = User.objects.create_user(
+        username='admin',
+        email='admin@example.com',
+        password='admin123'
+    )
+
+    user.is_staff = True
+    user.is_superuser = True
+    user.save()
+
+    return HttpResponse("Admin created successfully")
