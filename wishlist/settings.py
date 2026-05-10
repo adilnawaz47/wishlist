@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'channels',
+    'corsheaders',
     'wishlistapp',
     'chat',
 ]
@@ -59,6 +60,7 @@ CHANNEL_LAYERS = {
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -139,16 +141,24 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Configure CSRF trusted origins. Include your Render external hostname if present.
-CSRF_TRUSTED_ORIGINS = [
-    "https://lovelist.onrender.com",
-]
+# Configure CSRF trusted origins dynamically
+CSRF_TRUSTED_ORIGINS = []
 
-# If Render provides an external hostname, add it to trusted origins.
 if RENDER_EXTERNAL_HOSTNAME:
     render_origin = f"https://{RENDER_EXTERNAL_HOSTNAME}"
-    if render_origin not in CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS.append(render_origin)
+    CSRF_TRUSTED_ORIGINS.append(render_origin)
+    CSRF_TRUSTED_ORIGINS.append(f"http://{RENDER_EXTERNAL_HOSTNAME}")
+
+# Add localhost for development
+CSRF_TRUSTED_ORIGINS.extend([
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:3000",
+])
+
+# CORS Headers for WebSocket and cross-origin requests
+CORS_ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS
+CORS_ALLOW_CREDENTIALS = True
 
 # When running behind Render (or any proxy that terminates SSL), tell Django
 # that the proxy forwards the original protocol using the X-Forwarded-Proto header.
@@ -157,3 +167,23 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    X_FRAME_OPTIONS = 'SAMEORIGIN'
+else:
+    # Development settings
+    X_FRAME_OPTIONS = 'ALLOW-ALL'
+
+# WebSocket settings for better mobile support
+ASGI_APPLICATION = 'wishlist.asgi.application'
+
+# Configure channel layers for WebSocket
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
+# Allow WebSocket frames from trusted origins (mobile devices, etc)
+SECURE_FRAME_DENY = False
