@@ -40,9 +40,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         if msg_type == 'message':
             content = data.get('content', '').strip()
-            if not content:
+            gif_url = data.get('gif_url')
+            reply_to = data.get('reply_to')
+            forwarded_from = data.get('forwarded_from')
+
+            # If there's nothing meaningful to send, ignore
+            if not content and not gif_url:
                 return
-            message = await self.save_message(content)
+
+            message = await self.save_message(content, gif_url=gif_url, reply_to_id=reply_to, forwarded_from_id=forwarded_from)
             ts = message.timestamp.strftime('%I:%M %p')
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -53,6 +59,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'sender_username': self.user.username,
                     'sender_id': self.user.id,
                     'timestamp': ts,
+                    'image_url': message.image.url if message.image else None,
+                    'gif_url': message.gif_url or None,
+                    'reply_to_id': message.reply_to.id if message.reply_to else None,
+                    'forwarded_from_id': message.forwarded_from.id if message.forwarded_from else None,
+                    'forwarded_from_username': message.forwarded_from.username if message.forwarded_from else None,
                 }
             )
 
@@ -85,14 +96,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
     async def chat_message(self, event):
-        await self.send(text_data=json.dumps({
+        payload = {
             'type': 'message',
             'message_id': event['message_id'],
             'content': event['content'],
             'sender_username': event['sender_username'],
             'sender_id': event['sender_id'],
             'timestamp': event['timestamp'],
-        }))
+        }
+        # optional fields
+        for k in ('image_url','gif_url','reply_to_id','forwarded_from_id','forwarded_from_username'):
+            if k in event and event[k] is not None:
+                payload[k] = event[k]
+
+        await self.send(text_data=json.dumps(payload))
 
     async def messages_read(self, event):
         await self.send(text_data=json.dumps({
@@ -126,10 +143,30 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return False
 
     @database_sync_to_async
-    def save_message(self, content):
+    def save_message(self, content, gif_url=None, reply_to_id=None, forwarded_from_id=None):
         from .models import Room, Message
+        from django.contrib.auth.models import User
         room = Room.objects.get(id=self.room_id)
-        return Message.objects.create(room=room, sender=self.user, content=content)
+        reply_to = None
+        forwarded_from = None
+        if reply_to_id:
+            try:
+                reply_to = Message.objects.get(id=reply_to_id)
+            except Message.DoesNotExist:
+                reply_to = None
+        if forwarded_from_id:
+            try:
+                forwarded_from = User.objects.get(id=forwarded_from_id)
+            except User.DoesNotExist:
+                forwarded_from = None
+        return Message.objects.create(
+            room=room,
+            sender=self.user,
+            content=content,
+            gif_url=gif_url or None,
+            reply_to=reply_to,
+            forwarded_from=forwarded_from,
+        )
 
     @database_sync_to_async
     def mark_messages_read(self):

@@ -5,6 +5,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.core.files.storage import default_storage
 from .models import Room, Message
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 
 @login_required
@@ -84,12 +86,56 @@ def send_image(request, room_id):
     image = request.FILES.get('image')
     if not image:
         return JsonResponse({'error': 'No image provided'}, status=400)
+    # Optional reply/forward fields from the form
+    reply_to = request.POST.get('reply_to')
+    forwarded_from = request.POST.get('forwarded_from')
 
     msg = Message.objects.create(room=chat_room, sender=request.user, image=image)
+
+    # If provided, attach reply/forward relationships
+    if reply_to:
+        try:
+            parent = Message.objects.get(id=reply_to)
+            msg.reply_to = parent
+        except Message.DoesNotExist:
+            pass
+    if forwarded_from:
+        try:
+            from django.contrib.auth.models import User
+            u = User.objects.get(id=forwarded_from)
+            msg.forwarded_from = u
+        except Exception:
+            pass
+    msg.save()
+
+    # Build an absolute URL for the image (helps when proxied/static/media served)
+    try:
+        image_url = request.build_absolute_uri(msg.image.url)
+    except Exception:
+        image_url = msg.image.url
+
+    # Broadcast the image message via channels so the other participant sees it
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f'chat_{room_id}',
+        {
+            'type': 'chat_message',
+            'message_id': msg.id,
+            'content': msg.content or '',
+            'sender_username': request.user.username,
+            'sender_id': request.user.id,
+            'timestamp': msg.timestamp.strftime('%I:%M %p'),
+            'image_url': image_url,
+            'reply_to_id': msg.reply_to.id if msg.reply_to else None,
+            'forwarded_from_id': msg.forwarded_from.id if msg.forwarded_from else None,
+            'forwarded_from_username': msg.forwarded_from.username if msg.forwarded_from else None,
+        }
+    )
+
     return JsonResponse({
         'success': True,
         'message_id': msg.id,
-        'image_url': msg.image.url,
+        'image_url': image_url,
         'sender_username': request.user.username,
         'sender_id': request.user.id,
         'timestamp': msg.timestamp.strftime('%I:%M %p'),

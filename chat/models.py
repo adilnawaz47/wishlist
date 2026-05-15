@@ -36,6 +36,12 @@ class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
     content = models.TextField(blank=True)
     image = models.ImageField(upload_to='chat_images/', blank=True, null=True)
+    # Optional: message this replies to
+    reply_to = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='replies')
+    # If this message was forwarded from another user
+    forwarded_from = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='forwarded_messages')
+    # Optional GIF URL (external or uploaded URL)
+    gif_url = models.URLField(max_length=500, blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 

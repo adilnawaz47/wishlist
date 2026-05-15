@@ -137,11 +137,12 @@
   font-size: 0.95rem;
   line-height: 1.5;
   /* Proper word-wrapping — words break at spaces, not inside words */
-  white-space: normal;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  hyphens: auto;
+  /* Preserve user newlines but allow wrapping anywhere for long tokens */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-wrap: break-word; /* fallback */
+  word-break: normal;
+  hyphens: none;
 }
 .bubble.sent {
   background: linear-gradient(135deg, #ff6b9d, #c9184a);
@@ -399,19 +400,34 @@
            id="msg-{{ msg.id }}">
         <div>
           <div class="bubble {% if msg.sender == current_user %}sent{% else %}received{% endif %}">
+            {% if msg.forwarded_from %}
+              <div style="font-size:.78rem;color:#b23a4a;margin-bottom:6px;">Forwarded from {{ msg.forwarded_from.username }}</div>
+            {% endif %}
+            {% if msg.reply_to %}
+              <div style="font-size:.78rem;color:#666;border-left:3px solid #ffd7e4;padding-left:8px;margin-bottom:6px;">Reply to {{ msg.reply_to.sender.username }}: {{ msg.reply_to.content|truncatechars:60 }}</div>
+            {% endif %}
             {% if msg.image %}
-              <img src="{{ msg.image.url }}" alt="Photo" onclick="openImgModal(this.src)">
+              <img src="{{ request.build_absolute_uri(msg.image.url) }}" alt="Photo" onclick="openImgModal(this.src)">
+            {% elif msg.gif_url %}
+              <img src="{{ msg.gif_url }}" alt="GIF" onclick="openImgModal(this.src)">
             {% else %}
               {{ msg.content }}
             {% endif %}
           </div>
-          <div class="msg-meta">
-            <span>{{ msg.timestamp|date:"g:i A" }}</span>
-            {% if msg.sender == current_user %}
-              <span class="seen-check {% if msg.is_read %}read{% endif %}">
-                {% if msg.is_read %}✓✓{% else %}✓{% endif %}
-              </span>
-            {% endif %}
+          <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
+            <div class="msg-meta">
+              <span>{{ msg.timestamp|date:"g:i A" }}</span>
+              {% if msg.sender == current_user %}
+                <span class="seen-check {% if msg.is_read %}read{% endif %}">
+                  {% if msg.is_read %}✓✓{% else %}✓{% endif %}
+                </span>
+              {% endif %}
+            </div>
+            <div style="margin-left:8px;">
+              <button class="icon-btn" onclick="setReply({{ msg.id }}, '{{ msg.sender.username|escapejs }}', '{{ msg.content|default_if_none:''|escapejs }}')" title="Reply">↩</button>
+              <button class="icon-btn" onclick="setForward({{ msg.id }})" title="Forward">⤴</button>
+              <button class="icon-btn" onclick="openGifPrompt()" title="Send GIF">GIF</button>
+            </div>
           </div>
         </div>
       </div>
@@ -421,6 +437,13 @@
 
   <!-- Typing indicator -->
   <div id="typingIndicator">{{ other_user.username }} is typing…</div>
+
+  <!-- Reply / Forward bar -->
+  <div id="replyBar" style="display:none;padding:8px 14px;background:#fff9fb;border-top:1px solid #ffedf3;">
+    <small style="color:#c9184a;">Replying to</small>
+    <div id="replyPreview" style="font-size:.9rem;color:#333;display:inline-block;margin-left:8px;max-width:70%"></div>
+    <button class="icon-btn" style="float:right" onclick="clearReply()">✕</button>
+  </div>
 
   <!-- Input bar -->
   <div class="input-bar">
@@ -547,20 +570,41 @@ function appendMessage(data) {
   const div = document.createElement('div');
   div.className = `msg-row ${isSent ? 'sent' : 'received'}`;
   div.id = `msg-${data.message_id}`;
-
-  let inner = '';
-  if (data.image_url) {
-    inner = `<img src="${data.image_url}" alt="Photo" onclick="openImgModal(this.src)">`;
-  } else {
-    inner = escHtml(data.content).replace(/\n/g,'<br>');
+  // build bubble inner HTML supporting images, GIFs, replies and forwarded
+  let parts = [];
+  if (data.forwarded_from_username) {
+    parts.push(`<div style="font-size:.78rem;color:#b23a4a;margin-bottom:6px;">Forwarded from ${escHtml(data.forwarded_from_username)}</div>`);
   }
+  if (data.reply_to_id) {
+    parts.push(`<div style="font-size:.78rem;color:#666;border-left:3px solid #ffd7e4;padding-left:8px;margin-bottom:6px;">Reply</div>`);
+  }
+  if (data.image_url) {
+    let imgSrc = data.image_url;
+    if (!/^https?:\/\//i.test(imgSrc) && imgSrc.startsWith('/')) imgSrc = location.origin + imgSrc;
+    parts.push(`<img src="${imgSrc}" alt="Photo" onclick="openImgModal(this.src)">`);
+  } else if (data.gif_url) {
+    let gifSrc = data.gif_url;
+    if (!/^https?:\/\//i.test(gifSrc) && gifSrc.startsWith('/')) gifSrc = location.origin + gifSrc;
+    parts.push(`<img src="${gifSrc}" alt="GIF" onclick="openImgModal(this.src)">`);
+  } else {
+    parts.push(escHtml(data.content || '').replace(/\n/g,'<br>'));
+  }
+
+  const inner = parts.join('');
 
   div.innerHTML = `
     <div>
       <div class="bubble ${isSent ? 'sent' : 'received'}">${inner}</div>
-      <div class="msg-meta">
-        <span>${data.timestamp}</span>
-        ${isSent ? `<span class="seen-check">✓</span>` : ''}
+      <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
+        <div class="msg-meta">
+          <span>${data.timestamp}</span>
+          ${isSent ? `<span class="seen-check">✓</span>` : ''}
+        </div>
+        <div style="margin-left:8px;">
+          <button class="icon-btn" onclick="setReply(${data.message_id}, '${escHtml(data.sender_username)}', '${escHtml(data.content || '')}')" title="Reply">↩</button>
+          <button class="icon-btn" onclick="setForward(${data.message_id})" title="Forward">⤴</button>
+          <button class="icon-btn" onclick="openGifPrompt()" title="Send GIF">GIF</button>
+        </div>
       </div>
     </div>`;
   area.appendChild(div);
@@ -575,9 +619,13 @@ function sendMessage() {
   const inp = document.getElementById('msgInput');
   const content = inp.value.trim();
   if (!content || socket.readyState !== WebSocket.OPEN) return;
-  socket.send(JSON.stringify({type:'message', content}));
+  const payload = {type:'message', content, reply_to: replyToId};
+  if (forwardedFromId) payload.forwarded_from = forwardedFromId;
+  if (gifUrlPending) payload.gif_url = gifUrlPending;
+  socket.send(JSON.stringify(payload));
   inp.value = ''; inp.style.height='auto';
   sendTyping(false);
+  clearReply(); forwardedFromId = null; gifUrlPending = null;
 }
 
 function handleKey(e) {
@@ -599,10 +647,34 @@ async function sendImage(input) {
   const fd = new FormData();
   fd.append('image', file);
   fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+  if (replyToId) fd.append('reply_to', replyToId);
+  if (forwardedFromId) fd.append('forwarded_from', forwardedFromId);
   const res  = await fetch(`/chat/room/${ROOM_ID}/send-image/`, {method:'POST', body:fd});
   const data = await res.json();
   if (data.success) appendMessage(data);
   input.value = '';
+}
+
+// Reply / Forward / GIF state
+let replyToId = null, forwardedFromId = null, gifUrlPending = null;
+function setReply(msgId, senderUsername, content) {
+  replyToId = msgId;
+  document.getElementById('replyPreview').textContent = senderUsername + ': ' + (content ? content.substring(0,80) : '');
+  document.getElementById('replyBar').style.display = 'block';
+  document.getElementById('msgInput').focus();
+}
+function clearReply() { replyToId = null; document.getElementById('replyBar').style.display='none'; document.getElementById('replyPreview').textContent=''; }
+function setForward(msgId) {
+  forwardedFromId = prompt('Forward — enter user id to attribute as forwarded from (or leave blank):');
+  if (!forwardedFromId) forwardedFromId = null;
+  alert('Message will be forwarded in this chat.');
+}
+function openGifPrompt() {
+  const url = prompt('Enter GIF URL (direct image link)');
+  if (url) {
+    socket.send(JSON.stringify({type:'message', gif_url: url, reply_to: replyToId, forwarded_from: forwardedFromId}));
+    clearReply(); forwardedFromId = null;
+  }
 }
 
 function toggleEmoji() { document.getElementById('emojiPicker').classList.toggle('open'); }
