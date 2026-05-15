@@ -407,7 +407,7 @@
               <div style="font-size:.78rem;color:#666;border-left:3px solid #ffd7e4;padding-left:8px;margin-bottom:6px;">Reply to {{ msg.reply_to.sender.username }}: {{ msg.reply_to.content|truncatechars:60 }}</div>
             {% endif %}
             {% if msg.image %}
-              <img src="{{ request.build_absolute_uri(msg.image.url) }}" alt="Photo" onclick="openImgModal(this.src)">
+              <img src="{{ request.scheme }}://{{ request.get_host }}{{ msg.image.url }}" alt="Photo" onclick="openImgModal(this.src)">
             {% elif msg.gif_url %}
               <img src="{{ msg.gif_url }}" alt="GIF" onclick="openImgModal(this.src)">
             {% else %}

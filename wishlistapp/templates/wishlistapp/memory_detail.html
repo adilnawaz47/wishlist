@@ -25,7 +25,7 @@
                         {% for photo in memory.photos.all %}
                         <div class="col-md-6 col-lg-4 mb-3">
                             <div class="card">
-                                <img src="{{ request.build_absolute_uri(photo.image.url) }}" class="card-img-top" alt="{{ photo.caption|default:'Memory photo' }}" style="height: 200px; object-fit: cover;" onerror="this.style.display='none'">
+                                <img src="{{ request.scheme }}://{{ request.get_host }}{{ photo.image.url }}" class="card-img-top" alt="{{ photo.caption|default:'Memory photo' }}" style="height: 200px; object-fit: cover;" onerror="this.style.display='none'">
                                 {% if photo.caption %}
                                 <div class="card-body p-2">
                                     <p class="card-text small">{{ photo.caption }}</p>
